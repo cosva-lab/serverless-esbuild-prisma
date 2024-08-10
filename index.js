@@ -3,7 +3,7 @@ const fs = require('fs');
 const admZip = require('adm-zip');
 const get = require('lodash.get');
 const glob = require('glob');
-const { getSchemaPath } = require('@prisma/internals');
+const { getSchemaWithPath } = require('@prisma/internals');
 
 class ServerlessEsbuildPrisma {
   constructor(serverless, options) {
@@ -36,39 +36,33 @@ class ServerlessEsbuildPrisma {
   }
   async onBeforePackageFinalize() {
     const functionNames = this.getFunctionNamesForProcess();
-    const prismaSchema = await getSchemaPath();
+    const schemaPath = (await getSchemaWithPath()).schemaPath;
     for (const functionName of functionNames) {
       this.writePrismaSchemaAndEngineToZip(functionName, {
-        prismaSchema,
+        schemaPath,
       });
     }
   }
-  writePrismaSchemaAndEngineToZip(functionName, { prismaSchema }) {
+  writePrismaSchemaAndEngineToZip(functionName, { schemaPath }) {
     const fn = this.serverless.service.getFunction(functionName);
 
     const servicePath = this.getServicePath();
     const enginePaths = glob.sync(
       `${servicePath}/node_modules/**/{${this.engines.join(',')}}`,
-      { nodir: true },
+      { nodir: true }
     );
     if ('handler' in fn) {
       // is Serverless.FunctionDefinitionHandler
       const splitFunctionPath = fn.handler?.split('/');
       splitFunctionPath.pop();
       const functionPath = splitFunctionPath.join('/');
-      const zipFileName = path.join(
-        './.serverless/',
-        functionName + '.zip',
-      );
+      const zipFileName = path.join('./.serverless/', functionName + '.zip');
       let zip = new admZip(fs.readFileSync(zipFileName));
-      zip.addFile(
-        `${functionPath}/schema.prisma`,
-        fs.readFileSync(prismaSchema),
-      );
+      zip.addFile(`${functionPath}/schema.prisma`, fs.readFileSync(schemaPath));
       enginePaths.forEach(enginePath => {
         zip.addFile(
           `${functionPath}/${path.basename(enginePath)}`,
-          fs.readFileSync(enginePath),
+          fs.readFileSync(enginePath)
         );
       });
       zip.writeZip(zipFileName);
@@ -82,29 +76,23 @@ class ServerlessEsbuildPrisma {
         this.serverless.configurationInput.package &&
         this.serverless.configurationInput.package.individually;
     }
-    return packageIndividually
-      ? this.getAllNodeFunctions()
-      : ['service'];
+    return packageIndividually ? this.getAllNodeFunctions() : ['service'];
   }
   getPrismaPath() {
     return get(
       this.serverless,
       'service.custom.prisma.prismaPath',
-      getServicePath(),
+      getServicePath()
     );
   }
   getIgnoredFunctionNames() {
-    return get(
-      this.serverless,
-      'service.custom.prisma.ignoreFunctions',
-      [],
-    );
+    return get(this.serverless, 'service.custom.prisma.ignoreFunctions', []);
   }
   getEsbuildOutputPath() {
     return get(
       this.serverless,
       'service.custom.esbuild.outputDir',
-      getServicePath(),
+      getServicePath()
     );
   }
 
@@ -124,16 +112,12 @@ class ServerlessEsbuildPrisma {
       // @ts-ignore
       if (
         ('image' in func && func.image) /*&& func.image.uri*/ ||
-        ('image' in func &&
-          func.image &&
-          typeof func.image == 'string')
+        ('image' in func && func.image && typeof func.image == 'string')
       ) {
         return false;
       }
       return this.isNodeRuntime(
-        func.runtime ||
-          this.serverless.service.provider.runtime ||
-          'nodejs',
+        func.runtime || this.serverless.service.provider.runtime || 'nodejs'
       );
     });
   }
