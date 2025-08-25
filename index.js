@@ -8,12 +8,7 @@ const { getSchemaWithPath } = require('@prisma/internals');
 class ServerlessEsbuildPrisma {
   constructor(serverless, options) {
     this.engines = [
-      'libquery_engine*',
-      'libquery_engine-rhel*',
-      'libquery_engine*',
-      'libquery_engine-rhel*',
-      'libquery_engine*',
-      'libquery_engine-rhel*',
+      'libquery_engine*rhel-openssl-*.0.x.*',
       'migration-engine*',
       'migration-engine-rhel*',
       'prisma-fmt*',
