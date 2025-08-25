@@ -36,14 +36,15 @@ class ServerlessEsbuildPrisma {
   }
   async onBeforePackageFinalize() {
     const functionNames = this.getFunctionNamesForProcess();
-    const schemaPath = (await getSchemaWithPath()).schemaPath;
+    const { schemaPath } = await getSchemaWithPath();
+
     for (const functionName of functionNames) {
       this.writePrismaSchemaAndEngineToZip(functionName, {
-        schemaPath,
+        prismaSchema: schemaPath,
       });
     }
   }
-  writePrismaSchemaAndEngineToZip(functionName, { schemaPath }) {
+  writePrismaSchemaAndEngineToZip(functionName, { prismaSchema }) {
     const fn = this.serverless.service.getFunction(functionName);
 
     const servicePath = this.getServicePath();
@@ -58,7 +59,11 @@ class ServerlessEsbuildPrisma {
       const functionPath = splitFunctionPath.join('/');
       const zipFileName = path.join('./.serverless/', functionName + '.zip');
       let zip = new admZip(fs.readFileSync(zipFileName));
-      zip.addFile(`${functionPath}/schema.prisma`, fs.readFileSync(schemaPath));
+      const prismaFileName = path.basename(prismaSchema);
+      zip.addFile(
+        `${functionPath}/${prismaFileName}`,
+        fs.readFileSync(prismaSchema)
+      );
       enginePaths.forEach(enginePath => {
         zip.addFile(
           `${functionPath}/${path.basename(enginePath)}`,
