@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const admZip = require('adm-zip');
-const get = require('lodash.get');
 const glob = require('glob');
 const { getSchemaWithPath } = require('@prisma/internals');
 
@@ -79,20 +78,16 @@ class ServerlessEsbuildPrisma {
     return packageIndividually ? this.getAllNodeFunctions() : ['service'];
   }
   getPrismaPath() {
-    return get(
-      this.serverless,
-      'service.custom.prisma.prismaPath',
-      getServicePath()
+    return (
+      this.serverless?.service?.custom?.prisma?.prismaPath || getServicePath()
     );
   }
   getIgnoredFunctionNames() {
-    return get(this.serverless, 'service.custom.prisma.ignoreFunctions', []);
+    return this.serverless?.service?.custom?.prisma?.ignoreFunctions || [];
   }
   getEsbuildOutputPath() {
-    return get(
-      this.serverless,
-      'service.custom.esbuild.outputDir',
-      getServicePath()
+    return (
+      this.serverless?.service?.custom?.esbuild?.outputDir || getServicePath()
     );
   }
 
