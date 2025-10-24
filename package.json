@@ -3,6 +3,9 @@
   "version": "1.4.3",
   "description": "A Serverless Framework plugin that integrates ESBuild and Prisma for efficient bundling and seamless database management in serverless applications.",
   "main": "index.js",
+  "files": [
+    "lib/**/*"
+  ],
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
