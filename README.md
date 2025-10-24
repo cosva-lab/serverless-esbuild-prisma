@@ -5,8 +5,10 @@
 ## Features
 
 - Automatically embeds the Prisma schema and engine files into your Serverless deployment package.
+- **NEW**: Support for AWS Lambda Layers to reduce package sizes and improve deployment speed.
 - Supports multiple engines and runtime environments.
 - Seamlessly integrates with the Serverless framework and esbuild bundler.
+- Smart change detection for layers - only uploads when content changes.
 
 ## Installation
 
@@ -36,9 +38,23 @@ custom:
     ignoreFunctions: # Optional: Specify functions to ignore
       - functionName1
       - functionName2
+    # NEW: Layer configuration
+    useLayer: true # Enable AWS Lambda Layers for Prisma engines
+    layerName: "my-service-dev-prisma-layer" # Optional: custom layer name (includes stage)
+    layerDescription: "Prisma engines for my service" # Optional: custom description
   esbuild:
     outputDir: ./path/to/output/dir # Optional: Specify the output directory for esbuild
 ```
+
+#### Layer Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `useLayer` | boolean | `false` | Enable/disable layer usage |
+| `layerName` | string | `{service}-{stage}-prisma-layer` | Custom layer name (includes stage) |
+| `layerDescription` | string | `Prisma engines layer for serverless functions` | Layer description |
+
+For detailed layer usage information, see [LAYER_USAGE.md](./LAYER_USAGE.md).
 
 ## Example
 
