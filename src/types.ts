@@ -95,6 +95,6 @@ export interface CloudFormationResource {
 }
 
 export interface CloudFormationTemplate {
-  Resources: Record<string, CloudFormationResource>;
+  Resources: Partial<Record<string, CloudFormationResource>>;
   [key: string]: unknown;
 }

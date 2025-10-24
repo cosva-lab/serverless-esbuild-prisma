@@ -53,10 +53,24 @@ class CloudFormationManager {
         const functionLogicalId =
           this.serverless.providers?.aws?.naming?.getLambdaLogicalId(
             functionName,
-          ) ?? functionName;
+          );
+
+        if (!functionLogicalId) {
+          this.logger.warn(
+            `No logical ID found for function ${functionName}`,
+          );
+          continue;
+        }
 
         const functionResource =
           compiledTemplate.Resources[functionLogicalId];
+
+        if (!functionResource) {
+          this.logger.warn(
+            `No function resource found for function ${functionName}`,
+          );
+          continue;
+        }
 
         if (operation === 'add') {
           this.addLayerToFunctionResource(
