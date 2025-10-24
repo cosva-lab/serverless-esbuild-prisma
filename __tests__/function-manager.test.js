@@ -1,4 +1,4 @@
-const FunctionManager = require('../lib/function-manager');
+const FunctionManager = require('../lib/utils/function-manager');
 const fs = require('fs');
 const path = require('path');
 

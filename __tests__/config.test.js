@@ -1,4 +1,4 @@
-const ConfigManager = require('../lib/config');
+const ConfigManager = require('../lib/utils/config');
 
 describe('ConfigManager', () => {
   let mockServerless;

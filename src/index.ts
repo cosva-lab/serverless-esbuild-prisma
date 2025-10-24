@@ -1,12 +1,25 @@
-const { getSchemaWithPath } = require('@prisma/internals');
-const Logger = require('./logger');
-const ConfigManager = require('./config');
-const LayerManager = require('./layer-manager');
-const FunctionManager = require('./function-manager');
-const CloudFormationManager = require('./cloudformation-manager');
+import { getSchemaWithPath } from '@prisma/internals';
+import Logger from './utils/logger';
+import ConfigManager from './utils/config';
+import LayerManager from './utils/layer-manager';
+import FunctionManager from './utils/function-manager';
+import CloudFormationManager from './utils/cloudformation-manager';
+import { ServerlessInstance, ServerlessOptions, Commands, Hooks } from './types';
 
 class ServerlessEsbuildPrisma {
-  constructor(serverless, options) {
+  private serverless: ServerlessInstance;
+  private options: ServerlessOptions;
+  private config: ConfigManager;
+  private logger: Logger;
+  private layerManager: LayerManager;
+  private functionManager: FunctionManager;
+  private cloudFormationManager: CloudFormationManager;
+  private useLayer: boolean;
+  private deployProcessed: boolean;
+  public commands: Commands;
+  public hooks: Hooks;
+
+  constructor(serverless: ServerlessInstance, options: ServerlessOptions) {
     this.serverless = serverless;
     this.options = options;
 
@@ -49,7 +62,7 @@ class ServerlessEsbuildPrisma {
     };
   }
 
-  async onBeforePackage() {
+  async onBeforePackage(): Promise<void> {
     // Set Prisma environment variables before CloudFormation is built
     this.logger.info('Setting Prisma environment variables for functions...');
 
@@ -78,7 +91,7 @@ class ServerlessEsbuildPrisma {
     this.logger.success('Prisma environment variables set for all functions');
   }
 
-  async onPackageFinalize() {
+  async onPackageFinalize(): Promise<void> {
     const functionNames = this.config.getFunctionNamesForProcess();
     const { schemaPath } = await getSchemaWithPath();
 
@@ -100,7 +113,7 @@ class ServerlessEsbuildPrisma {
     }
   }
 
-  async onBeforeDeploy() {
+  async onBeforeDeploy(): Promise<void> {
     if (!this.useLayer || this.deployProcessed) {
       return;
     }
@@ -113,7 +126,7 @@ class ServerlessEsbuildPrisma {
     this.logger.success('Prisma layer deployment process completed');
   }
 
-  async onAfterDeploy() {
+  async onAfterDeploy(): Promise<void> {
     if (!this.useLayer) {
       return;
     }
@@ -123,7 +136,7 @@ class ServerlessEsbuildPrisma {
     this.logger.success('Functions updated with latest layer version');
   }
 
-  async onBeforeMergeCustomResources() {
+  async onBeforeMergeCustomResources(): Promise<void> {
     if (!this.useLayer) {
       await this.cloudFormationManager.removeLayersFromTemplate();
       return;
@@ -132,7 +145,7 @@ class ServerlessEsbuildPrisma {
     await this.handleLayerAssignment();
   }
 
-  async handleLayerAssignment() {
+  async handleLayerAssignment(): Promise<void> {
     this.logger.info('Adding layers to CloudFormation template...');
 
     try {
@@ -159,7 +172,7 @@ class ServerlessEsbuildPrisma {
     }
   }
 
-  async updateFunctionsWithLatestLayer() {
+  async updateFunctionsWithLatestLayer(): Promise<void> {
     try {
       const layerName = this.config.getLayerName();
       const layerArn = await this.layerManager.getLatestLayerArn(layerName);
@@ -182,4 +195,4 @@ class ServerlessEsbuildPrisma {
   }
 }
 
-module.exports = ServerlessEsbuildPrisma;
+export default ServerlessEsbuildPrisma;

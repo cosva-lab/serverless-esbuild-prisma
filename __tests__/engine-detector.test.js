@@ -1,4 +1,4 @@
-const EngineDetector = require('../lib/engine-detector');
+const EngineDetector = require('../lib/utils/engine-detector');
 const glob = require('glob');
 
 // Mock glob module

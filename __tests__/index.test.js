@@ -1,19 +1,19 @@
-const ServerlessEsbuildPrisma = require('../index');
+const ServerlessEsbuildPrisma = require('../lib/index');
 const { getSchemaWithPath } = require('@prisma/internals');
 
 // Mock the dependencies
 jest.mock('@prisma/internals');
-jest.mock('../lib/logger');
-jest.mock('../lib/config');
-jest.mock('../lib/layer-manager');
-jest.mock('../lib/function-manager');
-jest.mock('../lib/cloudformation-manager');
+jest.mock('../lib/utils/logger');
+jest.mock('../lib/utils/config');
+jest.mock('../lib/utils/layer-manager');
+jest.mock('../lib/utils/function-manager');
+jest.mock('../lib/utils/cloudformation-manager');
 
-const Logger = require('../lib/logger');
-const ConfigManager = require('../lib/config');
-const LayerManager = require('../lib/layer-manager');
-const FunctionManager = require('../lib/function-manager');
-const CloudFormationManager = require('../lib/cloudformation-manager');
+const Logger = require('../lib/utils/logger');
+const ConfigManager = require('../lib/utils/config');
+const LayerManager = require('../lib/utils/layer-manager');
+const FunctionManager = require('../lib/utils/function-manager');
+const CloudFormationManager = require('../lib/utils/cloudformation-manager');
 
 describe('ServerlessEsbuildPrisma', () => {
   let mockServerless;

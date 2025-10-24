@@ -1,5 +1,5 @@
 // Simple integration tests that focus on core functionality
-const ServerlessEsbuildPrisma = require('../index');
+const ServerlessEsbuildPrisma = require('../lib/index');
 
 describe('ServerlessEsbuildPrisma - Simple Tests', () => {
   let mockServerless;

@@ -1,4 +1,4 @@
-const CloudFormationManager = require('../lib/cloudformation-manager');
+const CloudFormationManager = require('../lib/utils/cloudformation-manager');
 
 describe('CloudFormationManager', () => {
   let mockServerless;
