@@ -83,7 +83,7 @@ class ServerlessEsbuildPrisma {
         );
       } catch (error) {
         this.logger.warn(
-          `Error setting environment variables for function ${functionName}: ${error.message}`
+          `Error setting environment variables for function ${functionName}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -167,7 +167,7 @@ class ServerlessEsbuildPrisma {
       );
     } catch (error) {
       this.logger.error(
-        `Error adding layers to CloudFormation template: ${error.message}`
+        `Error adding layers to CloudFormation template: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -190,7 +190,7 @@ class ServerlessEsbuildPrisma {
         true
       );
     } catch (error) {
-      this.logger.error(`Error updating function layers: ${error.message}`);
+      this.logger.error(`Error updating function layers: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

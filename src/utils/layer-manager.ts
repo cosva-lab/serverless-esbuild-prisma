@@ -1,23 +1,42 @@
-const path = require('path');
-const fs = require('fs');
-const admZip = require('adm-zip');
-const crypto = require('crypto');
-const {
+import path from 'path';
+import fs from 'fs';
+import AdmZip from 'adm-zip';
+import crypto from 'crypto';
+import {
   LambdaClient,
   ListLayersCommand,
   ListLayerVersionsCommand,
   GetLayerVersionCommand,
   PublishLayerVersionCommand,
-} = require('@aws-sdk/client-lambda');
-const { STSClient, GetCallerIdentityCommand } = require('@aws-sdk/client-sts');
-const EngineDetector = require('./engine-detector');
+} from '@aws-sdk/client-lambda';
+import {
+  STSClient,
+  GetCallerIdentityCommand,
+} from '@aws-sdk/client-sts';
+import EngineDetector from './engine-detector';
+import { ServerlessInstance } from '../types';
+import ConfigManager from './config';
+import Logger from './logger';
 
 class LayerManager {
-  constructor(serverless, config, logger) {
+  private serverless: ServerlessInstance;
+  private config: ConfigManager;
+  private logger: Logger;
+  private lambdaClient: LambdaClient;
+  private stsClient: STSClient;
+  private engineDetector: EngineDetector;
+
+  constructor(
+    serverless: ServerlessInstance,
+    config: ConfigManager,
+    logger: Logger,
+  ) {
     this.serverless = serverless;
     this.config = config;
     this.logger = logger;
-    this.lambdaClient = new LambdaClient({ region: config.getRegion() });
+    this.lambdaClient = new LambdaClient({
+      region: config.getRegion(),
+    });
     this.stsClient = new STSClient({ region: config.getRegion() });
     this.engineDetector = new EngineDetector(config, logger);
   }
@@ -28,69 +47,100 @@ class LayerManager {
       const result = await this.stsClient.send(command);
       return result.Account;
     } catch (error) {
-      this.logger.error(`Error getting account ID: ${error.message}`);
+      this.logger.error(
+        `Error getting account ID: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       return '123456789012';
     }
   }
 
-  async createLayerZip(schemaPath) {
+  async createLayerZip(schemaPath: string): Promise<string> {
     const enginePaths = this.engineDetector.getEnginePaths();
 
-    const layerZipPath = path.join('./.serverless/', 'prisma-layer.zip');
-    const zip = new admZip();
+    const layerZipPath = path.join(
+      './.serverless/',
+      'prisma-layer.zip',
+    );
+    const zip = new AdmZip();
 
     // Add engines to layer
     enginePaths.forEach(enginePath => {
       const engineName = path.basename(enginePath);
-      zip.addFile(`nodejs/${engineName}`, fs.readFileSync(enginePath));
+      zip.addFile(
+        `nodejs/${engineName}`,
+        fs.readFileSync(enginePath),
+      );
     });
 
     // Add schema to layer
     const prismaFileName = path.basename(schemaPath);
-    zip.addFile(`nodejs/${prismaFileName}`, fs.readFileSync(schemaPath));
+    zip.addFile(
+      `nodejs/${prismaFileName}`,
+      fs.readFileSync(schemaPath),
+    );
 
     zip.writeZip(layerZipPath);
     return layerZipPath;
   }
 
-  async layerExists(layerName) {
+  async layerExists(layerName: string) {
     try {
       const command = new ListLayersCommand({});
       const result = await this.lambdaClient.send(command);
-      return result.Layers.some(layer => layer.LayerName === layerName);
+      return !!result.Layers?.some(
+        layer => layer.LayerName === layerName,
+      );
     } catch (error) {
-      this.logger.error(`Error checking if layer exists: ${error.message}`);
+      this.logger.error(
+        `Error checking if layer exists: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       return false;
     }
   }
 
-  async layerNeedsUpdate(layerZipPath, layerName) {
+  async layerNeedsUpdate(
+    layerZipPath: string,
+    layerName: string,
+  ): Promise<boolean> {
     try {
-      const command = new ListLayerVersionsCommand({ LayerName: layerName });
+      const command = new ListLayerVersionsCommand({
+        LayerName: layerName,
+      });
       const result = await this.lambdaClient.send(command);
-      if (result.LayerVersions.length === 0) {
+      const layerVersions = result.LayerVersions;
+      if (!layerVersions || layerVersions.length === 0) {
         return true;
       }
 
-      const latestVersion = result.LayerVersions[0];
+      const latestVersion = layerVersions[0];
       const newLayerHash = this.calculateLayerContentHash();
       const currentLayerHash = await this.getCurrentLayerHash(
         layerName,
-        latestVersion.Version
+        latestVersion.Version ?? 1,
       );
 
       this.logger.debug(
         `Content hash comparison: new=${newLayerHash.substring(
           0,
-          8
+          8,
         )}... current=${
-          currentLayerHash ? currentLayerHash.substring(0, 8) + '...' : 'none'
-        }`
+          currentLayerHash
+            ? `${currentLayerHash.substring(0, 8)}...`
+            : 'none'
+        }`,
       );
 
       return newLayerHash !== currentLayerHash;
     } catch (error) {
-      this.logger.error(`Error checking layer update: ${error.message}`);
+      this.logger.error(
+        `Error checking layer update: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       return true;
     }
   }
@@ -106,12 +156,17 @@ class LayerManager {
       hash.update(engineContent);
     });
 
-    this.logger.debug(`Calculated hash for ${enginePaths.length} engines`);
+    this.logger.debug(
+      `Calculated hash for ${enginePaths.length} engines`,
+    );
 
     return hash.digest('hex');
   }
 
-  async getCurrentLayerHash(layerName, version) {
+  async getCurrentLayerHash(
+    layerName: string,
+    version: number,
+  ): Promise<string | null> {
     try {
       const command = new GetLayerVersionCommand({
         LayerName: layerName,
@@ -119,18 +174,22 @@ class LayerManager {
       });
       const result = await this.lambdaClient.send(command);
 
-      if (result.Description && result.Description.includes('hash:')) {
+      if (result.Description?.includes('hash:')) {
         const match = result.Description.match(/hash:([a-f0-9]+)/);
         return match ? match[1] : null;
       }
 
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
-  async uploadLayer(layerZipPath, layerName, layerDescription) {
+  async uploadLayer(
+    layerZipPath: string,
+    layerName: string,
+    layerDescription: string,
+  ) {
     try {
       const layerContent = fs.readFileSync(layerZipPath);
       const layerHash = this.calculateLayerContentHash();
@@ -141,24 +200,34 @@ class LayerManager {
         Content: {
           ZipFile: layerContent,
         },
-        CompatibleRuntimes: ['nodejs18.x', 'nodejs20.x', 'nodejs22.x'],
+        CompatibleRuntimes: [
+          'nodejs18.x',
+          'nodejs20.x',
+          'nodejs22.x',
+        ],
       });
 
       const result = await this.lambdaClient.send(command);
       this.logger.success(
         `Layer uploaded successfully: ${layerName}:${
           result.Version
-        } (hash: ${layerHash.substring(0, 8)}...)`
+        } (hash: ${layerHash.substring(0, 8)}...)`,
       );
 
       return result;
     } catch (error) {
-      this.logger.error(`Error uploading layer: ${error.message}`);
+      this.logger.error(
+        `Error uploading layer: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       throw error;
     }
   }
 
-  async handleLayerDeploymentFromZip(layerZipPath) {
+  async handleLayerDeploymentFromZip(
+    layerZipPath: string,
+  ): Promise<void> {
     const layerName = this.config.getLayerName();
     const layerDescription = this.config.getLayerDescription();
 
@@ -170,22 +239,29 @@ class LayerManager {
       : true;
 
     if (needsUpdate) {
-      await this.uploadLayer(layerZipPath, layerName, layerDescription);
+      await this.uploadLayer(
+        layerZipPath,
+        layerName,
+        layerDescription,
+      );
       this.logger.success('Layer uploaded successfully');
     } else {
       this.logger.info('Layer content unchanged, skipping upload');
     }
   }
 
-  async getLatestLayerArn(layerName) {
+  async getLatestLayerArn(layerName: string): Promise<string | null> {
     try {
-      const command = new ListLayerVersionsCommand({ LayerName: layerName });
+      const command = new ListLayerVersionsCommand({
+        LayerName: layerName,
+      });
       const result = await this.lambdaClient.send(command);
 
-      if (result.LayerVersions.length > 0) {
-        const latestVersion = result.LayerVersions[0];
+      const layerVersions = result.LayerVersions;
+      if (layerVersions && layerVersions.length > 0) {
+        const latestVersion = layerVersions[0];
         return (
-          latestVersion.LayerArn ||
+          latestVersion.LayerVersionArn ??
           `arn:aws:lambda:${this.config.getRegion()}:${await this.getAccountId()}:layer:${layerName}:${
             latestVersion.Version
           }`
@@ -193,10 +269,14 @@ class LayerManager {
       }
       return null;
     } catch (error) {
-      this.logger.debug(`Layer doesn't exist yet: ${error.message}`);
+      this.logger.debug(
+        `Layer doesn't exist yet: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
       return null;
     }
   }
 }
 
-module.exports = LayerManager;
+export default LayerManager;

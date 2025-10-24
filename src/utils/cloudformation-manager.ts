@@ -1,85 +1,136 @@
+import {
+  ServerlessInstance,
+  CloudFormationResource,
+  CloudFormationTemplate,
+} from '../types';
+import ConfigManager from './config';
+import Logger from './logger';
+
 class CloudFormationManager {
-  constructor(serverless, config, logger) {
+  private serverless: ServerlessInstance;
+  private config: ConfigManager;
+  private logger: Logger;
+
+  constructor(
+    serverless: ServerlessInstance,
+    config: ConfigManager,
+    logger: Logger,
+  ) {
     this.serverless = serverless;
     this.config = config;
     this.logger = logger;
   }
 
-  async addLayersToTemplate(layerArn) {
+  async addLayersToTemplate(layerArn: string): Promise<void> {
     await this.modifyTemplate('add', layerArn);
   }
 
-  async removeLayersFromTemplate() {
+  async removeLayersFromTemplate(): Promise<void> {
     await this.modifyTemplate('remove', null);
   }
 
-  async updateLayersInTemplate(newLayerArn) {
+  async updateLayersInTemplate(newLayerArn: string): Promise<void> {
     await this.modifyTemplate('update', newLayerArn);
   }
 
-  async modifyTemplate(operation, layerArn) {
+  async modifyTemplate(
+    operation: string,
+    layerArn: string | null,
+  ): Promise<void> {
     try {
-      const compiledTemplate = this.serverless.service.provider.compiledCloudFormationTemplate;
-      
+      const compiledTemplate: CloudFormationTemplate | undefined =
+        this.serverless.service.provider
+          .compiledCloudFormationTemplate;
+
       if (!compiledTemplate) {
         this.logger.warn('No compiled CloudFormation template found');
         return;
       }
 
       const functionNames = this.config.getFunctionNamesForProcess();
-      
+
       for (const functionName of functionNames) {
-        const functionLogicalId = this.serverless.providers.aws.naming.getLambdaLogicalId(functionName);
-        
-        if (compiledTemplate.Resources[functionLogicalId]) {
-          const functionResource = compiledTemplate.Resources[functionLogicalId];
-          
-          if (operation === 'add') {
-            this.addLayerToFunctionResource(functionResource, functionLogicalId, layerArn);
-          } else if (operation === 'remove') {
-            this.removeLayersFromFunctionResource(functionResource, functionLogicalId);
-          } else if (operation === 'update') {
-            this.updateLayerInFunctionResource(functionResource, functionLogicalId, layerArn);
-          }
+        const functionLogicalId =
+          this.serverless.providers?.aws?.naming?.getLambdaLogicalId(
+            functionName,
+          ) ?? functionName;
+
+        const functionResource =
+          compiledTemplate.Resources[functionLogicalId];
+
+        if (operation === 'add') {
+          this.addLayerToFunctionResource(
+            functionResource,
+            functionLogicalId,
+            layerArn!,
+          );
+        } else if (operation === 'remove') {
+          this.removeLayersFromFunctionResource(functionResource);
+        } else if (operation === 'update') {
+          this.updateLayerInFunctionResource(
+            functionResource,
+            layerArn!,
+          );
         }
       }
     } catch (error) {
-      this.logger.error(`Error modifying CloudFormation template: ${error.message}`);
+      this.logger.error(
+        `Error modifying CloudFormation template: ${error instanceof Error ? error.message : String(error)}`,
+      );
       throw error;
     }
   }
 
-  addLayerToFunctionResource(functionResource, functionLogicalId, layerArn) {
-    functionResource.Properties = functionResource.Properties || {};
-    functionResource.Properties.Layers = functionResource.Properties.Layers || [];
-    
+  addLayerToFunctionResource(
+    functionResource: CloudFormationResource,
+    functionLogicalId: string,
+    layerArn: string,
+  ): void {
+    functionResource.Properties = functionResource.Properties ?? {};
+    functionResource.Properties.Layers =
+      functionResource.Properties.Layers ?? [];
+
     if (!functionResource.Properties.Layers.includes(layerArn)) {
       functionResource.Properties.Layers.push(layerArn);
     }
   }
 
-  removeLayersFromFunctionResource(functionResource, functionLogicalId) {
-    if (functionResource.Properties && functionResource.Properties.Layers) {
-      functionResource.Properties.Layers = functionResource.Properties.Layers.filter(layer => {
-        return typeof layer !== 'string' || !layer.includes('prisma-layer');
-      });
-      
+  removeLayersFromFunctionResource(
+    functionResource: CloudFormationResource,
+  ): void {
+    if (functionResource.Properties?.Layers) {
+      functionResource.Properties.Layers =
+        functionResource.Properties.Layers.filter((layer: string) => {
+          return (
+            typeof layer !== 'string' ||
+            !layer.includes('prisma-layer')
+          );
+        });
+
       if (functionResource.Properties.Layers.length === 0) {
         delete functionResource.Properties.Layers;
       }
     }
   }
 
-  updateLayerInFunctionResource(functionResource, functionLogicalId, newLayerArn) {
-    if (functionResource.Properties && functionResource.Properties.Layers) {
-      functionResource.Properties.Layers = functionResource.Properties.Layers.map(layer => {
-        if (typeof layer === 'string' && layer.includes('prisma-layer') && layer.endsWith(':1')) {
-          return newLayerArn;
-        }
-        return layer;
-      });
+  updateLayerInFunctionResource(
+    functionResource: CloudFormationResource,
+    newLayerArn: string,
+  ): void {
+    if (functionResource.Properties?.Layers) {
+      functionResource.Properties.Layers =
+        functionResource.Properties.Layers.map((layer: string) => {
+          if (
+            typeof layer === 'string' &&
+            layer.includes('prisma-layer') &&
+            layer.endsWith(':1')
+          ) {
+            return newLayerArn;
+          }
+          return layer;
+        });
     }
   }
 }
 
-module.exports = CloudFormationManager;
+export default CloudFormationManager;

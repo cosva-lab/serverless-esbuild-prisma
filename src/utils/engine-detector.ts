@@ -1,8 +1,15 @@
-const glob = require('glob');
-const path = require('path');
+import * as glob from 'glob';
+import * as path from 'path';
+import ConfigManager from './config';
+import Logger from './logger';
+import { EngineConfig } from '../types';
 
 class EngineDetector {
-  constructor(config, logger) {
+  private config: ConfigManager;
+  private logger: Logger;
+  private engines: string[];
+
+  constructor(config: ConfigManager, logger: Logger) {
     this.config = config;
     this.logger = logger;
     this.engines = [
@@ -16,30 +23,37 @@ class EngineDetector {
     ];
   }
 
-  getUserEngineConfig() {
-    return this.config.serverless?.service?.custom?.prisma?.engines || {};
+  getUserEngineConfig(): EngineConfig {
+    return (
+      this.config.getServerlessInstance().service.custom?.prisma
+        ?.engines ?? {}
+    );
   }
 
-  detectAvailableEngines() {
+  detectAvailableEngines(): EngineConfig {
     const userConfig = this.getUserEngineConfig();
 
     // Always auto-detect engines first
     const servicePath = this.config.getServicePath();
-    
+
     // Debug: Log service path and search pattern
     this.logger.debug(`Service path: ${servicePath}`);
     const searchPattern = `${servicePath}/node_modules/**/{${this.engines.join(',')}}`;
     this.logger.debug(`Search pattern: ${searchPattern}`);
 
     const enginePaths = glob.sync(searchPattern, { nodir: true });
-    
+
     // Debug: Log found engine paths
-    this.logger.debug(`Found engine paths: ${JSON.stringify(enginePaths, null, 2)}`);
+    this.logger.debug(
+      `Found engine paths: ${JSON.stringify(enginePaths, null, 2)}`,
+    );
 
     // If no engines found with the default pattern, try alternative patterns
     if (enginePaths.length === 0) {
-      this.logger.debug('No engines found with default pattern, trying alternative patterns...');
-      
+      this.logger.debug(
+        'No engines found with default pattern, trying alternative patterns...',
+      );
+
       // Try without the rhel-openssl requirement for libquery_engine
       const alternativeEngines = [
         'libquery_engine*',
@@ -47,19 +61,25 @@ class EngineDetector {
         'prisma-fmt*',
         'introspection-engine*',
       ];
-      
+
       const alternativePattern = `${servicePath}/node_modules/**/{${alternativeEngines.join(',')}}`;
-      this.logger.debug(`Alternative search pattern: ${alternativePattern}`);
-      
-      const alternativePaths = glob.sync(alternativePattern, { nodir: true });
-      this.logger.debug(`Alternative engine paths: ${JSON.stringify(alternativePaths, null, 2)}`);
-      
+      this.logger.debug(
+        `Alternative search pattern: ${alternativePattern}`,
+      );
+
+      const alternativePaths = glob.sync(alternativePattern, {
+        nodir: true,
+      });
+      this.logger.debug(
+        `Alternative engine paths: ${JSON.stringify(alternativePaths, null, 2)}`,
+      );
+
       if (alternativePaths.length > 0) {
         enginePaths.push(...alternativePaths);
       }
     }
 
-    const autoDetectedEngines = {};
+    const autoDetectedEngines: EngineConfig = {};
 
     enginePaths.forEach(enginePath => {
       const engineName = path.basename(enginePath);
@@ -67,9 +87,10 @@ class EngineDetector {
       // Detect query engine - libquery_engine is always a library (.so.node)
       if (
         engineName.includes('libquery_engine') &&
-        (engineName.includes('rhel-openssl') || engineName.endsWith('.so.node'))
+        (engineName.includes('rhel-openssl') ||
+          engineName.endsWith('.so.node'))
       ) {
-        autoDetectedEngines.queryEngineLibrary = engineName;
+        autoDetectedEngines.queryEngineLibrary = [engineName];
       }
 
       // Detect query engine binary (different pattern)
@@ -77,7 +98,7 @@ class EngineDetector {
         engineName.includes('query-engine') &&
         !engineName.includes('libquery_engine')
       ) {
-        autoDetectedEngines.queryEngineBinary = engineName;
+        autoDetectedEngines.queryEngineBinary = [engineName];
       }
 
       // Detect migration engine
@@ -85,7 +106,7 @@ class EngineDetector {
         engineName.includes('migration-engine') &&
         !autoDetectedEngines.migrationEngine
       ) {
-        autoDetectedEngines.migrationEngine = engineName;
+        autoDetectedEngines.migrationEngine = [engineName];
       }
 
       // Detect introspection engine
@@ -93,17 +114,20 @@ class EngineDetector {
         engineName.includes('introspection-engine') &&
         !autoDetectedEngines.introspectionEngine
       ) {
-        autoDetectedEngines.introspectionEngine = engineName;
+        autoDetectedEngines.introspectionEngine = [engineName];
       }
 
       // Detect prisma-fmt
-      if (engineName.includes('prisma-fmt') && !autoDetectedEngines.prismaFmt) {
-        autoDetectedEngines.prismaFmt = engineName;
+      if (
+        engineName.includes('prisma-fmt') &&
+        !autoDetectedEngines.prismaFmt
+      ) {
+        autoDetectedEngines.prismaFmt = [engineName];
       }
     });
 
     this.logger.debug(
-      `Auto-detected engines: ${JSON.stringify(autoDetectedEngines, null, 2)}`
+      `Auto-detected engines: ${JSON.stringify(autoDetectedEngines, null, 2)}`,
     );
 
     // Merge user config with auto-detected engines
@@ -115,30 +139,30 @@ class EngineDetector {
 
     if (Object.keys(userConfig).length > 0) {
       this.logger.debug(
-        `User overrides: ${JSON.stringify(userConfig, null, 2)}`
+        `User overrides: ${JSON.stringify(userConfig, null, 2)}`,
       );
       this.logger.debug(
-        `Final engines: ${JSON.stringify(finalEngines, null, 2)}`
+        `Final engines: ${JSON.stringify(finalEngines, null, 2)}`,
       );
     }
 
     return finalEngines;
   }
 
-  getEnginePaths() {
+  getEnginePaths(): string[] {
     const servicePath = this.config.getServicePath();
 
     // Always use default patterns to find all engines
     // The detectAvailableEngines method will handle user overrides
     return glob.sync(
       `${servicePath}/node_modules/**/{${this.engines.join(',')}}`,
-      { nodir: true }
+      { nodir: true },
     );
   }
 
-  getEnginesList() {
+  getEnginesList(): string[] {
     return this.engines;
   }
 }
 
-module.exports = EngineDetector;
+export default EngineDetector;

@@ -1,17 +1,37 @@
-const path = require('path');
-const fs = require('fs');
-const admZip = require('adm-zip');
-const EngineDetector = require('./engine-detector');
+import path from 'path';
+import fs from 'fs';
+import AdmZip from 'adm-zip';
+import EngineDetector from './engine-detector';
+import {
+  ServerlessInstance,
+  ServerlessFunction,
+  LayerConfig,
+} from '../types';
+import ConfigManager from './config';
+import Logger from './logger';
 
 class FunctionManager {
-  constructor(serverless, config, logger) {
+  private serverless: ServerlessInstance;
+  private config: ConfigManager;
+  private logger: Logger;
+  private engineDetector: EngineDetector;
+
+  constructor(
+    serverless: ServerlessInstance,
+    config: ConfigManager,
+    logger: Logger,
+  ) {
     this.serverless = serverless;
     this.config = config;
     this.logger = logger;
     this.engineDetector = new EngineDetector(config, logger);
   }
 
-  async updateFunctionsWithLayer(layerArn, logMessage, removePlaceholders = false) {
+  async updateFunctionsWithLayer(
+    layerArn: string,
+    logMessage: string,
+    removePlaceholders: boolean = false,
+  ): Promise<void> {
     const functionNames = this.config.getFunctionNamesForProcess();
 
     for (const functionName of functionNames) {
@@ -23,15 +43,16 @@ class FunctionManager {
         }
 
         // Initialize layers array if needed
-        if (!fn.layers) {
-          fn.layers = [];
-        }
+        fn.layers ??= [];
 
         // Remove existing Prisma layers
-        fn.layers = fn.layers.filter(layer => {
+        fn.layers = fn.layers.filter((layer: string) => {
           if (typeof layer === 'string') {
             if (removePlaceholders) {
-              return !layer.includes('prisma-layer') && !layer.includes('LATEST');
+              return (
+                !layer.includes('prisma-layer') &&
+                !layer.includes('LATEST')
+              );
             }
             return !layer.includes('prisma-layer');
           }
@@ -41,44 +62,58 @@ class FunctionManager {
         // Add new layer if provided
         if (layerArn && !fn.layers.includes(layerArn)) {
           fn.layers.push(layerArn);
-          this.logger.success(`${logMessage} ${functionName}: ${layerArn}`);
+          this.logger.success(
+            `${logMessage} ${functionName}: ${layerArn}`,
+          );
         }
       } catch (error) {
-        this.logger.warn(`Error processing function ${functionName}: ${error.message}`);
+        this.logger.warn(
+          `Error processing function ${functionName}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
   }
 
-  setPrismaEnvironmentVariables(fn) {
-    fn.environment ||= {};
+  setPrismaEnvironmentVariables(fn: ServerlessFunction): void {
+    fn.environment ??= {};
 
     // Detect available engines dynamically
     const engines = this.engineDetector.detectAvailableEngines();
-    
+
     // Debug: Log what engines were detected
-    this.logger.debug(`Detected engines: ${JSON.stringify(engines, null, 2)}`);
+    this.logger.debug(
+      `Detected engines: ${JSON.stringify(engines, null, 2)}`,
+    );
 
     // Set Prisma engine paths based on what we found
     // Only set the appropriate query engine type
     if (engines.queryEngineLibrary) {
       fn.environment.PRISMA_QUERY_ENGINE_LIBRARY = `/opt/nodejs/${engines.queryEngineLibrary}`;
-      this.logger.debug(`Set query engine library: ${engines.queryEngineLibrary}`);
+      this.logger.debug(
+        `Set query engine library: ${engines.queryEngineLibrary}`,
+      );
     }
 
     if (engines.queryEngineBinary) {
       fn.environment.PRISMA_QUERY_ENGINE_BINARY = `/opt/nodejs/${engines.queryEngineBinary}`;
-      this.logger.debug(`Set query engine binary: ${engines.queryEngineBinary}`);
+      this.logger.debug(
+        `Set query engine binary: ${engines.queryEngineBinary}`,
+      );
     }
 
     if (engines.migrationEngine) {
       fn.environment.PRISMA_MIGRATION_ENGINE_BINARY = `/opt/nodejs/${engines.migrationEngine}`;
-      this.logger.debug(`Set migration engine: ${engines.migrationEngine}`);
+      this.logger.debug(
+        `Set migration engine: ${engines.migrationEngine}`,
+      );
     }
 
     if (engines.introspectionEngine) {
       fn.environment.PRISMA_INTROSPECTION_ENGINE_BINARY = `/opt/nodejs/${engines.introspectionEngine}`;
       this.logger.debug(
-        `Set introspection engine: ${engines.introspectionEngine}`
+        `Set introspection engine: ${engines.introspectionEngine}`,
       );
     }
 
@@ -88,54 +123,90 @@ class FunctionManager {
     }
 
     // Debug: Log final environment variables
-    const prismaEnvVars = Object.keys(fn.environment).filter(key => key.startsWith('PRISMA_'));
-    this.logger.debug(`Final Prisma environment variables: ${JSON.stringify(prismaEnvVars.reduce((acc, key) => ({ ...acc, [key]: fn.environment[key] }), {}), null, 2)}`);
-    
+    const prismaEnvVars = Object.keys(fn.environment).filter(key =>
+      key.startsWith('PRISMA_'),
+    );
+    this.logger.debug(
+      `Final Prisma environment variables: ${JSON.stringify(
+        prismaEnvVars.reduce(
+          (acc, key) => ({ ...acc, [key]: fn.environment?.[key] }),
+          {},
+        ),
+        null,
+        2,
+      )}`,
+    );
+
     // If no engines were detected, log a warning
     if (prismaEnvVars.length === 0) {
-      this.logger.warn('No Prisma engines detected. Environment variables will not be set. Make sure Prisma is properly installed and engines are available.');
+      this.logger.warn(
+        'No Prisma engines detected. Environment variables will not be set. Make sure Prisma is properly installed and engines are available.',
+      );
     }
   }
 
-  writePrismaSchemaAndEngineToZip(functionName, { prismaSchema }) {
+  writePrismaSchemaAndEngineToZip(
+    functionName: string,
+    { prismaSchema }: LayerConfig,
+  ): void {
     this.writeToZip(functionName, prismaSchema, true);
   }
 
-  writePrismaSchemaToZip(functionName, { prismaSchema }) {
+  writePrismaSchemaToZip(
+    functionName: string,
+    { prismaSchema }: LayerConfig,
+  ): void {
     this.writeToZip(functionName, prismaSchema, false);
   }
 
-  writeToZip(functionName, prismaSchema, includeEngines = false) {
+  writeToZip(
+    functionName: string,
+    prismaSchema: string,
+    includeEngines: boolean = false,
+  ): void {
     try {
       const fn = this.serverless.service.getFunction(functionName);
-      
+
       if (!fn || typeof fn !== 'object' || !('handler' in fn)) {
         return;
       }
 
-      const splitFunctionPath = fn.handler?.split('/');
+      const splitFunctionPath = fn.handler.split('/');
       splitFunctionPath.pop();
       const functionPath = splitFunctionPath.join('/');
-      const zipFileName = path.join('./.serverless/', functionName + '.zip');
-      const zip = new admZip(fs.readFileSync(zipFileName));
+      const zipFileName = path.join(
+        './.serverless/',
+        `${functionName}.zip`,
+      );
+      const zip = new AdmZip(fs.readFileSync(zipFileName));
       const prismaFileName = path.basename(prismaSchema);
-      
+
       // Add schema
-      zip.addFile(`${functionPath}/${prismaFileName}`, fs.readFileSync(prismaSchema));
-      
+      zip.addFile(
+        `${functionPath}/${prismaFileName}`,
+        fs.readFileSync(prismaSchema),
+      );
+
       // Add engines if requested
       if (includeEngines) {
         const enginePaths = this.engineDetector.getEnginePaths();
         enginePaths.forEach(enginePath => {
-          zip.addFile(`${functionPath}/${path.basename(enginePath)}`, fs.readFileSync(enginePath));
+          zip.addFile(
+            `${functionPath}/${path.basename(enginePath)}`,
+            fs.readFileSync(enginePath),
+          );
         });
       }
-      
+
       zip.writeZip(zipFileName);
     } catch (error) {
-      this.logger.warn(`Error writing to zip for function ${functionName}: ${error.message}`);
+      this.logger.warn(
+        `Error writing to zip for function ${functionName}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 }
 
-module.exports = FunctionManager;
+export default FunctionManager;
