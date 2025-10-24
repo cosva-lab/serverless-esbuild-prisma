@@ -30,11 +30,37 @@ class ServerlessEsbuildPrisma {
     };
 
     this.hooks = {
+      'before:package:createDeploymentArtifacts': this.onBeforePackage.bind(this),
       'after:package:createDeploymentArtifacts': this.onPackageFinalize.bind(this),
       'before:deploy:deploy': this.onBeforeDeploy.bind(this),
       'after:deploy:deploy': this.onAfterDeploy.bind(this),
       'before:aws:package:finalize:mergeCustomProviderResources': this.onBeforeMergeCustomResources.bind(this),
     };
+  }
+
+  async onBeforePackage() {
+    // Set Prisma environment variables before CloudFormation is built
+    this.logger.info('Setting Prisma environment variables for functions...');
+    
+    const functionNames = this.config.getFunctionNamesForProcess();
+    
+    for (const functionName of functionNames) {
+      try {
+        const fn = this.serverless.service.getFunction(functionName);
+        
+        if (!fn || typeof fn !== 'object' || !('handler' in fn)) {
+          continue;
+        }
+        
+        // Set environment variables for Prisma
+        this.functionManager.setPrismaEnvironmentVariables(fn);
+        this.logger.debug(`Set Prisma environment variables for function: ${functionName}`);
+      } catch (error) {
+        this.logger.warn(`Error setting environment variables for function ${functionName}: ${error.message}`);
+      }
+    }
+    
+    this.logger.success('Prisma environment variables set for all functions');
   }
 
   async onPackageFinalize() {
