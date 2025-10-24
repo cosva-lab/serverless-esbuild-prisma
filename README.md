@@ -42,6 +42,9 @@ custom:
     useLayer: true # Enable AWS Lambda Layers for Prisma engines
     layerName: "my-service-dev-prisma-layer" # Optional: custom layer name (includes stage)
     layerDescription: "Prisma engines for my service" # Optional: custom description
+    # NEW: Logging configuration
+    logging: "DEBUG" # ERROR, WARN, INFO, SUCCESS, DEBUG
+    debug: true # Enable debug logging (legacy)
   esbuild:
     outputDir: ./path/to/output/dir # Optional: Specify the output directory for esbuild
 ```
@@ -54,7 +57,40 @@ custom:
 | `layerName` | string | `{service}-{stage}-prisma-layer` | Custom layer name (includes stage) |
 | `layerDescription` | string | `Prisma engines layer for serverless functions` | Layer description |
 
+#### Logging Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `logging` | string | `INFO` | Log level: ERROR, WARN, INFO, SUCCESS, DEBUG |
+| `debug` | boolean | `false` | Enable debug logging (legacy) |
+
+#### Engine Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `engines` | object | `{}` | Manual engine configuration (overrides auto-detection) |
+
+#### Manual Engine Configuration
+
+You can manually specify engine names for specific engines, while others are auto-detected:
+
+```yaml
+custom:
+  prisma:
+    useLayer: true
+    engines:
+      queryEngineLibrary: "libquery_engine-rhel-openssl-3.0.x.so.node"
+      # migrationEngine, introspectionEngine, prismaFmt will be auto-detected
+```
+
+**Hybrid Configuration**: The plugin auto-detects all engines by default, but you can override specific ones:
+
+- ✅ **Auto-detected**: Engines not specified in config
+- ✅ **User-configured**: Engines specified in config override auto-detection
+- ✅ **Partial config**: Only specify the engines you want to customize
+
 For detailed layer usage information, see [LAYER_USAGE.md](./LAYER_USAGE.md).
+For detailed logging configuration, see [LOGGING_CONFIG.md](./LOGGING_CONFIG.md).
 
 ## Example
 
