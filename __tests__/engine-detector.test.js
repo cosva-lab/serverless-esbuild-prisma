@@ -1,4 +1,4 @@
-const EngineDetector = require('../lib/utils/engine-detector');
+const EngineDetector = require('../lib/utils/engine-detector').default;
 const glob = require('glob');
 
 // Mock glob module
@@ -12,7 +12,7 @@ describe('EngineDetector', () => {
   beforeEach(() => {
     mockConfig = {
       getServicePath: jest.fn(() => '/test/service/path'),
-      serverless: {
+      getServerlessInstance: jest.fn(() => ({
         service: {
           custom: {
             prisma: {
@@ -20,7 +20,7 @@ describe('EngineDetector', () => {
             }
           }
         }
-      }
+      }))
     };
     mockLogger = {
       debug: jest.fn()
@@ -58,9 +58,17 @@ describe('EngineDetector', () => {
     });
 
     it('should return custom engine config', () => {
-      mockConfig.serverless.service.custom.prisma.engines = {
-        queryEngineLibrary: 'custom-engine.so'
-      };
+      mockConfig.getServerlessInstance.mockReturnValue({
+        service: {
+          custom: {
+            prisma: {
+              engines: {
+                queryEngineLibrary: 'custom-engine.so'
+              }
+            }
+          }
+        }
+      });
       const result = engineDetector.getUserEngineConfig();
       expect(result).toEqual({
         queryEngineLibrary: 'custom-engine.so'
@@ -82,24 +90,32 @@ describe('EngineDetector', () => {
     it('should detect all engine types', () => {
       const result = engineDetector.detectAvailableEngines();
       
-      expect(result.queryEngineLibrary).toBe('libquery_engine.rhel-openssl-1.0.x.so.node');
-      expect(result.queryEngineBinary).toBe('query-engine-rhel-openssl-1.0.x');
-      expect(result.migrationEngine).toBe('migration-engine-rhel-openssl-1.0.x');
-      expect(result.prismaFmt).toBe('prisma-fmt-rhel-openssl-1.0.x');
-      expect(result.introspectionEngine).toBe('introspection-engine-rhel-openssl-1.0.x');
+      expect(result.queryEngineLibrary).toEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
+      expect(result.queryEngineBinary).toEqual(['query-engine-rhel-openssl-1.0.x']);
+      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
+      expect(result.prismaFmt).toEqual(['prisma-fmt-rhel-openssl-1.0.x']);
+      expect(result.introspectionEngine).toEqual(['introspection-engine-rhel-openssl-1.0.x']);
     });
 
     it('should merge user config with auto-detected engines', () => {
-      mockConfig.serverless.service.custom.prisma.engines = {
-        queryEngineLibrary: 'custom-query-engine.so',
-        customEngine: 'custom-engine'
-      };
+      mockConfig.getServerlessInstance.mockReturnValue({
+        service: {
+          custom: {
+            prisma: {
+              engines: {
+                queryEngineLibrary: 'custom-query-engine.so',
+                customEngine: 'custom-engine'
+              }
+            }
+          }
+        }
+      });
       
       const result = engineDetector.detectAvailableEngines();
       
       expect(result.queryEngineLibrary).toBe('custom-query-engine.so');
       expect(result.customEngine).toBe('custom-engine');
-      expect(result.migrationEngine).toBe('migration-engine-rhel-openssl-1.0.x');
+      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
 
     it('should log debug information', () => {
@@ -111,9 +127,17 @@ describe('EngineDetector', () => {
     });
 
     it('should log user overrides when provided', () => {
-      mockConfig.serverless.service.custom.prisma.engines = {
-        queryEngineLibrary: 'custom-engine.so'
-      };
+      mockConfig.getServerlessInstance.mockReturnValue({
+        service: {
+          custom: {
+            prisma: {
+              engines: {
+                queryEngineLibrary: 'custom-engine.so'
+              }
+            }
+          }
+        }
+      });
       
       engineDetector.detectAvailableEngines();
       
@@ -142,7 +166,7 @@ describe('EngineDetector', () => {
       const result = engineDetector.detectAvailableEngines();
       
       // Should only keep the first one found
-      expect(result.migrationEngine).toBe('migration-engine-rhel-openssl-1.0.x');
+      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
   });
 
@@ -179,7 +203,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.queryEngineLibrary).toBe('libquery_engine.rhel-openssl-1.0.x.so.node');
+      expect(result.queryEngineLibrary).toEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
     });
 
     it('should detect query engine binary', () => {
@@ -188,7 +212,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.queryEngineBinary).toBe('query-engine-rhel-openssl-1.0.x');
+      expect(result.queryEngineBinary).toEqual(['query-engine-rhel-openssl-1.0.x']);
     });
 
     it('should not detect query engine binary when it contains libquery_engine', () => {
@@ -206,7 +230,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.migrationEngine).toBe('migration-engine-rhel-openssl-1.0.x');
+      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
 
     it('should detect introspection engine', () => {
@@ -215,7 +239,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.introspectionEngine).toBe('introspection-engine-rhel-openssl-1.0.x');
+      expect(result.introspectionEngine).toEqual(['introspection-engine-rhel-openssl-1.0.x']);
     });
 
     it('should detect prisma-fmt', () => {
@@ -224,7 +248,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.prismaFmt).toBe('prisma-fmt-rhel-openssl-1.0.x');
+      expect(result.prismaFmt).toEqual(['prisma-fmt-rhel-openssl-1.0.x']);
     });
   });
 });

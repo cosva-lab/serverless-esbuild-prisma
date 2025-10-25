@@ -54,13 +54,11 @@ class ConfigManager {
     );
   }
 
-  getFunctionNamesForProcess(): string[] {
-    let packageIndividually = false;
-    if (this.serverless.config.configurationInput) {
-      packageIndividually =
-        !!this.serverless.config.configurationInput.package
-          ?.individually;
-    }
+  getFunctionNamesForProcess() {
+    const sls = this.serverless;
+    const configurationInput = sls.configurationInput;
+    const packageIndividually =
+      configurationInput?.package?.individually ?? false;
     return packageIndividually
       ? this.getAllNodeFunctions()
       : ['service'];

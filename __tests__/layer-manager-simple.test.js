@@ -1,4 +1,4 @@
-const LayerManager = require('../lib/utils/layer-manager');
+const LayerManager = require('../lib/utils/layer-manager').default;
 
 // Mock the dependencies
 jest.mock('@aws-sdk/client-lambda');

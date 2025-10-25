@@ -1,4 +1,4 @@
-const Logger = require('../lib/utils/logger');
+const Logger = require('../lib/utils/logger').default;
 
 describe('Logger', () => {
   let mockServerless;

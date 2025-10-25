@@ -1,5 +1,5 @@
 // Simple integration tests that focus on core functionality
-const ServerlessEsbuildPrisma = require('../lib/index');
+const ServerlessEsbuildPrisma = require('../lib/index').default;
 
 describe('ServerlessEsbuildPrisma - Simple Tests', () => {
   let mockServerless;
@@ -67,7 +67,7 @@ describe('ServerlessEsbuildPrisma - Simple Tests', () => {
 
   describe('Configuration', () => {
     it('should use layer when configured', () => {
-      mockServerless.service.custom.prisma.useLayer = true;
+      mockServerless.service.custom.prisma.layer = true;
       const layerPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
       expect(layerPlugin.useLayer).toBe(true);
     });

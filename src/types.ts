@@ -27,10 +27,10 @@ export interface ServerlessInstance {
   };
   config: {
     servicePath: string;
-    configurationInput?: {
-      package?: {
-        individually?: boolean;
-      };
+  };
+  configurationInput?: {
+    package?: {
+      individually?: boolean;
     };
   };
   cli: {

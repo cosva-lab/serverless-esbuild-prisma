@@ -1,4 +1,4 @@
-const CloudFormationManager = require('../lib/utils/cloudformation-manager');
+const CloudFormationManager = require('../lib/utils/cloudformation-manager').default;
 
 describe('CloudFormationManager', () => {
   let mockServerless;
@@ -122,12 +122,10 @@ describe('CloudFormationManager', () => {
       await cloudFormationManager.modifyTemplate('remove', null);
 
       expect(cloudFormationManager.removeLayersFromFunctionResource).toHaveBeenCalledWith(
-        mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function1LambdaFunction'],
-        'Function1LambdaFunction'
+        mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function1LambdaFunction']
       );
       expect(cloudFormationManager.removeLayersFromFunctionResource).toHaveBeenCalledWith(
-        mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function2LambdaFunction'],
-        'Function2LambdaFunction'
+        mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function2LambdaFunction']
       );
     });
 
@@ -138,12 +136,10 @@ describe('CloudFormationManager', () => {
 
       expect(cloudFormationManager.updateLayerInFunctionResource).toHaveBeenCalledWith(
         mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function1LambdaFunction'],
-        'Function1LambdaFunction',
         'new-layer-arn'
       );
       expect(cloudFormationManager.updateLayerInFunctionResource).toHaveBeenCalledWith(
         mockServerless.service.provider.compiledCloudFormationTemplate.Resources['Function2LambdaFunction'],
-        'Function2LambdaFunction',
         'new-layer-arn'
       );
     });
@@ -281,7 +277,6 @@ describe('CloudFormationManager', () => {
 
       cloudFormationManager.updateLayerInFunctionResource(
         functionResource,
-        'Function1LambdaFunction',
         'arn:aws:lambda:us-west-2:123456789012:layer:prisma-layer:3'
       );
 
