@@ -11,7 +11,7 @@ export interface ServerlessInstance {
     };
     custom?: {
       prisma?: {
-        layer?: boolean;
+        useLayer?: boolean;
         layerName?: string;
         layerDescription?: string;
         prismaPath?: string;

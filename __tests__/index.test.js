@@ -43,7 +43,7 @@ describe('ServerlessEsbuildPrisma', () => {
 
     // Mock the managers
     mockConfig = {
-      getLayerConfig: jest.fn(() => false),
+      getUseLayer: jest.fn(() => false),
       getFunctionNamesForProcess: jest.fn(() => ['function1', 'function2']),
       getLayerName: jest.fn(() => 'test-layer'),
       getRegion: jest.fn(() => 'us-west-2')
@@ -132,14 +132,19 @@ describe('ServerlessEsbuildPrisma', () => {
   });
 
   describe('onBeforePackage', () => {
-    it('should set Prisma environment variables for all functions', async () => {
+    it('should set Prisma environment variables for all functions when useLayer is true', async () => {
+      // Reset the plugin to get fresh config with useLayer = true
+      mockConfig.getUseLayer.mockReturnValue(true);
+      
+      const layerPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
+      
       mockConfig.getFunctionNamesForProcess.mockReturnValue(['function1', 'function2']);
       mockServerless.service.getFunction.mockImplementation((name) => ({
         handler: 'src/handler.handler',
         environment: {}
       }));
 
-      await plugin.onBeforePackage();
+      await layerPlugin.onBeforePackage();
 
       expect(mockConfig.getFunctionNamesForProcess).toHaveBeenCalled();
       expect(mockServerless.service.getFunction).toHaveBeenCalledWith('function1');
@@ -149,7 +154,33 @@ describe('ServerlessEsbuildPrisma', () => {
       expect(mockLogger.success).toHaveBeenCalledWith('Prisma environment variables set for all functions');
     });
 
-    it('should handle functions without handler gracefully', async () => {
+    it('should skip setting environment variables when useLayer is false', async () => {
+      // Clear any previous calls to mocks
+      jest.clearAllMocks();
+      
+      // Ensure the mock returns false for layer config
+      mockConfig.getUseLayer.mockReturnValue(false);
+      
+      // Create a new plugin instance to ensure fresh mocks
+      const testPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
+      
+      await testPlugin.onBeforePackage();
+
+      // Should not call setPrismaEnvironmentVariables
+      expect(mockFunctionManager.setPrismaEnvironmentVariables).not.toHaveBeenCalled();
+      
+      // Should log debug message about skipping
+      expect(mockLogger.debug).toHaveBeenCalledWith('Skipping Prisma environment variables setup (not using layers)');
+      
+      // Should not log success message
+      expect(mockLogger.success).not.toHaveBeenCalledWith('Prisma environment variables set for all functions');
+    });
+
+    it('should handle functions without handler gracefully when useLayer is true', async () => {
+      // Reset the plugin to get fresh config with useLayer = true
+      mockConfig.getUseLayer.mockReturnValue(true);
+      const layerPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
+      
       mockConfig.getFunctionNamesForProcess.mockReturnValue(['function1']);
       mockServerless.service.getFunction.mockImplementation((name) => {
         if (name === 'function1') {
@@ -158,13 +189,17 @@ describe('ServerlessEsbuildPrisma', () => {
         return { handler: 'src/handler.handler', environment: {} };
       });
 
-      await plugin.onBeforePackage();
+      await layerPlugin.onBeforePackage();
 
       // Should not call setPrismaEnvironmentVariables for functions without handler
       expect(mockFunctionManager.setPrismaEnvironmentVariables).toHaveBeenCalledTimes(0);
     });
 
-    it('should handle invalid functions gracefully', async () => {
+    it('should handle invalid functions gracefully when useLayer is true', async () => {
+      // Reset the plugin to get fresh config with useLayer = true
+      mockConfig.getUseLayer.mockReturnValue(true);
+      const layerPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
+      
       mockConfig.getFunctionNamesForProcess.mockReturnValue(['function1']);
       mockServerless.service.getFunction.mockImplementation((name) => {
         if (name === 'function1') {
@@ -173,7 +208,7 @@ describe('ServerlessEsbuildPrisma', () => {
         return { handler: 'src/handler.handler', environment: {} };
       });
 
-      await plugin.onBeforePackage();
+      await layerPlugin.onBeforePackage();
 
       // Should not call setPrismaEnvironmentVariables for null functions
       expect(mockFunctionManager.setPrismaEnvironmentVariables).toHaveBeenCalledTimes(0);
@@ -182,7 +217,7 @@ describe('ServerlessEsbuildPrisma', () => {
 
   describe('onPackageFinalize', () => {
     it('should process functions with layer when useLayer is true', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(true);
+      mockConfig.getUseLayer.mockReturnValue(true);
       // Reset the plugin to get fresh config
       plugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
 
@@ -195,7 +230,7 @@ describe('ServerlessEsbuildPrisma', () => {
     });
 
     it('should process functions without layer when useLayer is false', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(false);
+      mockConfig.getUseLayer.mockReturnValue(false);
 
       await plugin.onPackageFinalize();
 
@@ -207,7 +242,7 @@ describe('ServerlessEsbuildPrisma', () => {
 
   describe('onBeforeDeploy', () => {
     it('should skip when useLayer is false', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(false);
+      mockConfig.getUseLayer.mockReturnValue(false);
 
       await plugin.onBeforeDeploy();
 
@@ -215,7 +250,7 @@ describe('ServerlessEsbuildPrisma', () => {
     });
 
     it('should skip when deployProcessed is true', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(true);
+      mockConfig.getUseLayer.mockReturnValue(true);
       plugin.deployProcessed = true;
 
       await plugin.onBeforeDeploy();
@@ -224,7 +259,7 @@ describe('ServerlessEsbuildPrisma', () => {
     });
 
     it('should handle layer deployment when useLayer is true and not processed', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(true);
+      mockConfig.getUseLayer.mockReturnValue(true);
       // Reset the plugin to get fresh config
       plugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
       plugin.deployProcessed = false;
@@ -241,7 +276,7 @@ describe('ServerlessEsbuildPrisma', () => {
 
   describe('onAfterDeploy', () => {
     it('should skip when useLayer is false', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(false);
+      mockConfig.getUseLayer.mockReturnValue(false);
 
       await plugin.onAfterDeploy();
 
@@ -249,7 +284,7 @@ describe('ServerlessEsbuildPrisma', () => {
     });
 
     it('should update functions with latest layer when useLayer is true', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(true);
+      mockConfig.getUseLayer.mockReturnValue(true);
       // Reset the plugin to get fresh config
       plugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
       plugin.updateFunctionsWithLatestLayer = jest.fn();
@@ -264,7 +299,7 @@ describe('ServerlessEsbuildPrisma', () => {
 
   describe('onBeforeMergeCustomResources', () => {
     it('should remove layers from template when useLayer is false', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(false);
+      mockConfig.getUseLayer.mockReturnValue(false);
 
       await plugin.onBeforeMergeCustomResources();
 
@@ -272,7 +307,7 @@ describe('ServerlessEsbuildPrisma', () => {
     });
 
     it('should handle layer assignment when useLayer is true', async () => {
-      mockConfig.getLayerConfig.mockReturnValue(true);
+      mockConfig.getUseLayer.mockReturnValue(true);
       // Reset the plugin to get fresh config
       plugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
       plugin.handleLayerAssignment = jest.fn();

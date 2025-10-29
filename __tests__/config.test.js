@@ -55,18 +55,19 @@ describe('ConfigManager', () => {
     });
   });
 
-  describe('getLayerConfig', () => {
+  describe('getUseLayer', () => {
     it('should return false by default', () => {
-      expect(configManager.getLayerConfig()).toBe(false);
+      expect(configManager.getUseLayer()).toBe(false);
     });
 
     it('should return configured layer setting', () => {
       mockServerless.service.custom = {
         prisma: {
-          layer: true
+          useLayer: true
         }
       };
-      expect(configManager.getLayerConfig()).toBe(true);
+      const testConfigManager = new ConfigManager(mockServerless);
+      expect(testConfigManager.getUseLayer()).toBe(true);
     });
   });
 

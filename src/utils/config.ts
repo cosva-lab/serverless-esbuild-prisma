@@ -19,8 +19,8 @@ class ConfigManager {
     return this.serverless.config.servicePath;
   }
 
-  getLayerConfig(): boolean {
-    return this.service.custom?.prisma?.layer ?? false;
+  getUseLayer(): boolean {
+    return this.service.custom?.prisma?.useLayer ?? false;
   }
 
   getLayerName(): string {

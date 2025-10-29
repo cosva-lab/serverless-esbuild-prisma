@@ -19,7 +19,7 @@ describe('ServerlessEsbuildPrisma - Simple Tests', () => {
         },
         custom: {
           prisma: {
-            useLayer: false
+            layer: false
           }
         }
       },
@@ -67,7 +67,7 @@ describe('ServerlessEsbuildPrisma - Simple Tests', () => {
 
   describe('Configuration', () => {
     it('should use layer when configured', () => {
-      mockServerless.service.custom.prisma.layer = true;
+      mockServerless.service.custom.prisma.useLayer = true;
       const layerPlugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
       expect(layerPlugin.useLayer).toBe(true);
     });
