@@ -1,6 +1,6 @@
 {
   "name": "@cosva-lab/serverless-esbuild-prisma",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "A Serverless Framework plugin that integrates ESBuild and Prisma for efficient bundling and seamless database management in serverless applications.",
   "main": "lib/index.js",
   "files": [
