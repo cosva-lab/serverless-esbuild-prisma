@@ -3,6 +3,7 @@ import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import prettier from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
+import jest from 'eslint-plugin-jest';
 
 export default [
   js.configs.recommended,
@@ -55,6 +56,52 @@ export default [
 
       // Prettier integration
       'prettier/prettier': 'error',
+    },
+  },
+  {
+    files: ['__tests__/**/*.js', '**/*.test.js', '**/*.spec.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      sourceType: 'module',
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+      },
+    },
+    plugins: {
+      jest: jest,
+    },
+    rules: {
+      ...jest.configs.recommended.rules,
+      'jest/expect-expect': 'error',
+      'jest/no-disabled-tests': 'warn',
+      'jest/no-focused-tests': 'error',
+      'jest/prefer-to-have-length': 'warn',
+      'jest/valid-expect': 'error',
+      'jest/no-identical-title': 'error',
+      'jest/valid-describe-callback': 'error',
+      'jest/valid-expect-in-promise': 'error',
+      'jest/no-conditional-expect': 'error',
+      'jest/no-deprecated-functions': 'error',
+      'jest/no-done-callback': 'error',
+      'jest/no-duplicate-hooks': 'error',
+      'jest/no-export': 'error',
+      'jest/no-standalone-expect': 'error',
+      'jest/no-test-return-statement': 'error',
+      'jest/prefer-expect-assertions': 'off',
+      'jest/prefer-strict-equal': 'warn',
+      'jest/prefer-to-be': 'warn',
+      'jest/prefer-to-contain': 'warn',
+      'jest/prefer-to-have-length': 'warn',
+      'jest/require-top-level-describe': 'off',
+      'jest/valid-title': 'error',
     },
   },
   {
