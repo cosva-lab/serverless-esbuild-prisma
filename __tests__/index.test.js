@@ -1,8 +1,6 @@
 const ServerlessEsbuildPrisma = require('../lib/index').default;
-const { getSchemaWithPath } = require('@prisma/internals');
 
 // Mock the dependencies
-jest.mock('@prisma/internals');
 jest.mock('../lib/utils/logger');
 jest.mock('../lib/utils/config');
 jest.mock('../lib/utils/layer-manager');
@@ -76,8 +74,6 @@ describe('ServerlessEsbuildPrisma', () => {
     };
 
     mockFunctionManager = {
-      writePrismaSchemaToZip: jest.fn(),
-      writePrismaSchemaAndEngineToZip: jest.fn(),
       updateFunctionsWithLayer: jest.fn(),
       setPrismaEnvironmentVariables: jest.fn(),
     };
@@ -96,10 +92,6 @@ describe('ServerlessEsbuildPrisma', () => {
     CloudFormationManager.mockImplementation(
       () => mockCloudFormationManager,
     );
-
-    getSchemaWithPath.mockResolvedValue({
-      schemaPath: '/path/to/schema.prisma',
-    });
 
     plugin = new ServerlessEsbuildPrisma(mockServerless, mockOptions);
   });
@@ -282,7 +274,7 @@ describe('ServerlessEsbuildPrisma', () => {
   });
 
   describe('onPackageFinalize', () => {
-    it('should process functions with layer when useLayer is true', async () => {
+    it('should create layer zip when useLayer is true', async () => {
       mockConfig.getUseLayer.mockReturnValue(true);
       // Reset the plugin to get fresh config
       plugin = new ServerlessEsbuildPrisma(
@@ -292,40 +284,21 @@ describe('ServerlessEsbuildPrisma', () => {
 
       await plugin.onPackageFinalize();
 
-      expect(mockLayerManager.createLayerZip).toHaveBeenCalledWith(
-        '/path/to/schema.prisma',
-      );
+      expect(mockLayerManager.createLayerZip).toHaveBeenCalled();
       expect(mockLogger.success).toHaveBeenCalledWith(
         'Layer zip generated for deployment',
       );
-      expect(
-        mockFunctionManager.writePrismaSchemaToZip,
-      ).toHaveBeenCalledWith('function1', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
-      expect(
-        mockFunctionManager.writePrismaSchemaToZip,
-      ).toHaveBeenCalledWith('function2', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
     });
 
-    it('should process functions without layer when useLayer is false', async () => {
+    it('should do nothing when useLayer is false', async () => {
       mockConfig.getUseLayer.mockReturnValue(false);
 
       await plugin.onPackageFinalize();
 
       expect(mockLayerManager.createLayerZip).not.toHaveBeenCalled();
-      expect(
-        mockFunctionManager.writePrismaSchemaAndEngineToZip,
-      ).toHaveBeenCalledWith('function1', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
-      expect(
-        mockFunctionManager.writePrismaSchemaAndEngineToZip,
-      ).toHaveBeenCalledWith('function2', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
+      expect(mockLogger.success).not.toHaveBeenCalledWith(
+        'Layer zip generated for deployment',
+      );
     });
   });
 
@@ -365,9 +338,7 @@ describe('ServerlessEsbuildPrisma', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Starting Prisma layer deployment process',
       );
-      expect(mockLayerManager.createLayerZip).toHaveBeenCalledWith(
-        '/path/to/schema.prisma',
-      );
+      expect(mockLayerManager.createLayerZip).toHaveBeenCalled();
       expect(
         mockLayerManager.handleLayerDeploymentFromZip,
       ).toHaveBeenCalledWith('/path/to/layer.zip');

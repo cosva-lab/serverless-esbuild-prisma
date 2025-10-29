@@ -11,7 +11,7 @@ global.console = {
 
 // Mock glob module
 jest.mock('glob', () => ({
-  sync: jest.fn(() => [])
+  sync: jest.fn(() => []),
 }));
 
 // Mock adm-zip module
@@ -20,7 +20,7 @@ jest.mock('adm-zip', () => {
     addLocalFile: jest.fn(),
     addLocalFolder: jest.fn(),
     writeZip: jest.fn(),
-    toBuffer: jest.fn(() => Buffer.from('mock-zip-content'))
+    toBuffer: jest.fn(() => Buffer.from('mock-zip-content')),
   }));
 });
 
@@ -31,15 +31,10 @@ jest.mock('@aws-sdk/client-lambda', () => ({
   UpdateFunctionConfigurationCommand: jest.fn(),
   ListLayerVersionsCommand: jest.fn(),
   ListLayersCommand: jest.fn(),
-  GetLayerVersionCommand: jest.fn()
+  GetLayerVersionCommand: jest.fn(),
 }));
 
 jest.mock('@aws-sdk/client-sts', () => ({
   STSClient: jest.fn(),
-  GetCallerIdentityCommand: jest.fn()
-}));
-
-// Mock @prisma/internals
-jest.mock('@prisma/internals', () => ({
-  getSchemaWithPath: jest.fn(() => Promise.resolve({ schemaPath: '/mock/schema.prisma' }))
+  GetCallerIdentityCommand: jest.fn(),
 }));

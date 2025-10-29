@@ -86,10 +86,6 @@ describe('ServerlessEsbuildPrisma - Simple Tests', () => {
     });
 
     it('should handle onPackageFinalize without errors', async () => {
-      // Mock the getSchemaWithPath function
-      const { getSchemaWithPath } = require('@prisma/internals');
-      getSchemaWithPath.mockResolvedValue({ schemaPath: '/test/schema.prisma' });
-
       await expect(plugin.onPackageFinalize()).resolves.not.toThrow();
     });
 

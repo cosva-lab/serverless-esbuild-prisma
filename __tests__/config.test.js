@@ -184,12 +184,6 @@ describe('ConfigManager', () => {
         configManager.getFunctionNamesForProcess(),
       ).toStrictEqual(['service']);
     });
-
-    it.skip('should return all node functions when packaging individually', () => {
-      // This test is temporarily skipped due to mock setup issues
-      // The functionality works correctly in the actual implementation
-      expect(true).toBe(true);
-    });
   });
 
   describe('getAllNodeFunctions', () => {

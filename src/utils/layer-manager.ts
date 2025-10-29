@@ -56,7 +56,7 @@ class LayerManager {
     }
   }
 
-  async createLayerZip(schemaPath: string): Promise<string> {
+  async createLayerZip(): Promise<string> {
     const enginePaths = this.engineDetector.getEnginePaths();
 
     const layerZipPath = path.join(
@@ -73,13 +73,6 @@ class LayerManager {
         fs.readFileSync(enginePath),
       );
     });
-
-    // Add schema to layer
-    const prismaFileName = path.basename(schemaPath);
-    zip.addFile(
-      `nodejs/${prismaFileName}`,
-      fs.readFileSync(schemaPath),
-    );
 
     zip.writeZip(layerZipPath);
     return layerZipPath;

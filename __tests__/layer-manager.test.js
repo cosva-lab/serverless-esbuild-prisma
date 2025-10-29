@@ -128,7 +128,7 @@ describe('LayerManager', () => {
       fs.writeFileSync = jest.fn();
     });
 
-    it('should create layer zip with engines and schema', async () => {
+    it('should create layer zip with engines', async () => {
       const mockZip = {
         addFile: jest.fn(),
         writeZip: jest.fn(),
@@ -136,9 +136,7 @@ describe('LayerManager', () => {
       const AdmZip = require('adm-zip');
       AdmZip.mockImplementation(() => mockZip);
 
-      const result = await layerManager.createLayerZip(
-        '/path/to/schema.prisma',
-      );
+      const result = await layerManager.createLayerZip();
 
       expect(mockEngineDetector.getEnginePaths).toHaveBeenCalled();
       expect(mockZip.addFile).toHaveBeenCalled();

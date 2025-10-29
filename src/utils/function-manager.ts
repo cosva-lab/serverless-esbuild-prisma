@@ -2,11 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import EngineDetector from './engine-detector';
-import {
-  ServerlessInstance,
-  ServerlessFunction,
-  LayerConfig,
-} from '../types';
+import { ServerlessInstance, ServerlessFunction } from '../types';
 import ConfigManager from './config';
 import Logger from './logger';
 
@@ -143,20 +139,6 @@ class FunctionManager {
         'No Prisma engines detected. Environment variables will not be set. Make sure Prisma is properly installed and engines are available.',
       );
     }
-  }
-
-  writePrismaSchemaAndEngineToZip(
-    functionName: string,
-    { prismaSchema }: LayerConfig,
-  ): void {
-    this.writeToZip(functionName, prismaSchema, true);
-  }
-
-  writePrismaSchemaToZip(
-    functionName: string,
-    { prismaSchema }: LayerConfig,
-  ): void {
-    this.writeToZip(functionName, prismaSchema, false);
   }
 
   writeToZip(

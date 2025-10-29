@@ -284,37 +284,6 @@ describe('FunctionManager', () => {
     });
   });
 
-  describe('writePrismaSchemaAndEngineToZip', () => {
-    it('should call writeToZip with includeEngines true', () => {
-      functionManager.writeToZip = jest.fn();
-
-      functionManager.writePrismaSchemaAndEngineToZip('function1', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
-
-      expect(functionManager.writeToZip).toHaveBeenCalledWith(
-        'function1',
-        '/path/to/schema.prisma',
-        true,
-      );
-    });
-  });
-
-  describe('writePrismaSchemaToZip', () => {
-    it('should call writeToZip with includeEngines false', () => {
-      functionManager.writeToZip = jest.fn();
-
-      functionManager.writePrismaSchemaToZip('function1', {
-        prismaSchema: '/path/to/schema.prisma',
-      });
-
-      expect(functionManager.writeToZip).toHaveBeenCalledWith(
-        'function1',
-        '/path/to/schema.prisma',
-        false,
-      );
-    });
-  });
 
   describe('writeToZip', () => {
     beforeEach(() => {

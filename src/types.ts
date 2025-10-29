@@ -72,10 +72,6 @@ export interface Hooks {
   [key: string]: () => Promise<void>;
 }
 
-export interface LayerConfig {
-  prismaSchema: string;
-}
-
 export interface EngineConfig {
   queryEngineLibrary?: string[];
   queryEngineBinary?: string[];

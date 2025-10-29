@@ -1,4 +1,3 @@
-import { getSchemaWithPath } from '@prisma/internals';
 import Logger from './utils/logger';
 import ConfigManager from './utils/config';
 import LayerManager from './utils/layer-manager';
@@ -116,27 +115,9 @@ class ServerlessEsbuildPrisma {
   }
 
   async onPackageFinalize(): Promise<void> {
-    const functionNames = this.config.getFunctionNamesForProcess();
-    const { schemaPath } = await getSchemaWithPath();
-
     if (this.useLayer) {
-      await this.layerManager.createLayerZip(schemaPath);
+      await this.layerManager.createLayerZip();
       this.logger.success('Layer zip generated for deployment');
-    }
-
-    for (const functionName of functionNames) {
-      if (this.useLayer) {
-        this.functionManager.writePrismaSchemaToZip(functionName, {
-          prismaSchema: schemaPath,
-        });
-      } else {
-        this.functionManager.writePrismaSchemaAndEngineToZip(
-          functionName,
-          {
-            prismaSchema: schemaPath,
-          },
-        );
-      }
     }
   }
 
@@ -146,9 +127,7 @@ class ServerlessEsbuildPrisma {
     }
 
     this.logger.info('Starting Prisma layer deployment process');
-    const { schemaPath } = await getSchemaWithPath();
-    const layerZipPath =
-      await this.layerManager.createLayerZip(schemaPath);
+    const layerZipPath = await this.layerManager.createLayerZip();
     await this.layerManager.handleLayerDeploymentFromZip(
       layerZipPath,
     );
