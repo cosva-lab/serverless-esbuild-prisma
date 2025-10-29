@@ -39,7 +39,7 @@ describe('EngineDetector', () => {
     });
 
     it('should have correct engine patterns', () => {
-      expect(engineDetector.engines).toEqual([
+      expect(engineDetector.engines).toStrictEqual([
         'libquery_engine*rhel-openssl-*.0.x.*',
         'migration-engine*',
         'migration-engine-rhel*',
@@ -54,7 +54,7 @@ describe('EngineDetector', () => {
   describe('getUserEngineConfig', () => {
     it('should return user engine config', () => {
       const result = engineDetector.getUserEngineConfig();
-      expect(result).toEqual({});
+      expect(result).toStrictEqual({});
     });
 
     it('should return custom engine config', () => {
@@ -70,7 +70,7 @@ describe('EngineDetector', () => {
         }
       });
       const result = engineDetector.getUserEngineConfig();
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         queryEngineLibrary: 'custom-engine.so'
       });
     });
@@ -90,11 +90,11 @@ describe('EngineDetector', () => {
     it('should detect all engine types', () => {
       const result = engineDetector.detectAvailableEngines();
       
-      expect(result.queryEngineLibrary).toEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
-      expect(result.queryEngineBinary).toEqual(['query-engine-rhel-openssl-1.0.x']);
-      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
-      expect(result.prismaFmt).toEqual(['prisma-fmt-rhel-openssl-1.0.x']);
-      expect(result.introspectionEngine).toEqual(['introspection-engine-rhel-openssl-1.0.x']);
+      expect(result.queryEngineLibrary).toStrictEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
+      expect(result.queryEngineBinary).toStrictEqual(['query-engine-rhel-openssl-1.0.x']);
+      expect(result.migrationEngine).toStrictEqual(['migration-engine-rhel-openssl-1.0.x']);
+      expect(result.prismaFmt).toStrictEqual(['prisma-fmt-rhel-openssl-1.0.x']);
+      expect(result.introspectionEngine).toStrictEqual(['introspection-engine-rhel-openssl-1.0.x']);
     });
 
     it('should merge user config with auto-detected engines', () => {
@@ -115,7 +115,7 @@ describe('EngineDetector', () => {
       
       expect(result.queryEngineLibrary).toBe('custom-query-engine.so');
       expect(result.customEngine).toBe('custom-engine');
-      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
+      expect(result.migrationEngine).toStrictEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
 
     it('should log debug information', () => {
@@ -154,7 +154,7 @@ describe('EngineDetector', () => {
       
       const result = engineDetector.detectAvailableEngines();
       
-      expect(result).toEqual({});
+      expect(result).toStrictEqual({});
     });
 
     it('should handle duplicate engine types', () => {
@@ -166,7 +166,7 @@ describe('EngineDetector', () => {
       const result = engineDetector.detectAvailableEngines();
       
       // Should only keep the first one found
-      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
+      expect(result.migrationEngine).toStrictEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
   });
 
@@ -188,7 +188,7 @@ describe('EngineDetector', () => {
   describe('getEnginesList', () => {
     it('should return engines list', () => {
       const result = engineDetector.getEnginesList();
-      expect(result).toEqual(engineDetector.engines);
+      expect(result).toStrictEqual(engineDetector.engines);
     });
   });
 
@@ -203,7 +203,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.queryEngineLibrary).toEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
+      expect(result.queryEngineLibrary).toStrictEqual(['libquery_engine.rhel-openssl-1.0.x.so.node']);
     });
 
     it('should detect query engine binary', () => {
@@ -212,7 +212,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.queryEngineBinary).toEqual(['query-engine-rhel-openssl-1.0.x']);
+      expect(result.queryEngineBinary).toStrictEqual(['query-engine-rhel-openssl-1.0.x']);
     });
 
     it('should not detect query engine binary when it contains libquery_engine', () => {
@@ -230,7 +230,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.migrationEngine).toEqual(['migration-engine-rhel-openssl-1.0.x']);
+      expect(result.migrationEngine).toStrictEqual(['migration-engine-rhel-openssl-1.0.x']);
     });
 
     it('should detect introspection engine', () => {
@@ -239,7 +239,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.introspectionEngine).toEqual(['introspection-engine-rhel-openssl-1.0.x']);
+      expect(result.introspectionEngine).toStrictEqual(['introspection-engine-rhel-openssl-1.0.x']);
     });
 
     it('should detect prisma-fmt', () => {
@@ -248,7 +248,7 @@ describe('EngineDetector', () => {
       ]);
       
       const result = engineDetector.detectAvailableEngines();
-      expect(result.prismaFmt).toEqual(['prisma-fmt-rhel-openssl-1.0.x']);
+      expect(result.prismaFmt).toStrictEqual(['prisma-fmt-rhel-openssl-1.0.x']);
     });
   });
 });

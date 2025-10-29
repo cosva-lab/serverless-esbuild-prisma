@@ -77,7 +77,7 @@ describe('LayerManager - Simple Tests', () => {
       const result = layerManager.calculateLayerContentHash();
       
       expect(typeof result).toBe('string');
-      expect(result.length).toBe(64); // SHA256 hex length
+      expect(result).toHaveLength(64); // SHA256 hex length
     });
   });
 

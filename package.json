@@ -9,9 +9,9 @@
   "type": "commonjs",
   "scripts": {
     "build": "rimraf lib && tsc",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
-    "lint:check": "eslint src/**/*.ts --max-warnings 0",
+    "lint": "eslint src/**/*.ts __tests__/**/*.js",
+    "lint:fix": "eslint src/**/*.ts __tests__/**/*.js --fix",
+    "lint:check": "eslint src/**/*.ts __tests__/**/*.js --max-warnings 0",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
